@@ -31,4 +31,10 @@ FROM employee_demographics
 WHERE birth_date LIKE '%ER%'
 ;
 
+SELECT *
+FROM employee_demographics
+-- Will grab anyone with the name a and 2 more letters after
+WHERE first_name LIKE 'a__'
+;
+
 
