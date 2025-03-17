@@ -1,55 +1,42 @@
--- CTEs common table expression (with is the key word to define CTEs)
-with CTE_example (gender,avg_sal, max_sal, min_sal, count_sal)as 
+-- CTEs
+WITH CTE_example (Gender, AVG_sal, MAX_sal, MIN_sal, COUNT_sal) AS 
 (
-select gender, avg(salary), max(salary), min(salary), count(salary)
-from employee_demographics dem
-join employee_salary sal
-	on dem.employee_id = sal.employee_id
-group by gender
+SELECT gender, AVG(salary) avg_sal, MAX(salary) max_sal, MIN(salary) min_sal, COUNT(salary) count_sal
+FROM employee_demographics dem
+JOIN employee_salary sal
+	ON dem.employee_id = sal.employee_id
+GROUP BY gender
 )
-select *
-from CTE_example
+SELECT AVG(avg_sal)
+FROM CTE_example
 ;
 
--- can also be written like this but above is standard in workforce
-select avg(avg_sal)
-from (-- subquery
-select gender, avg(salary) avg_sal, max(salary) max_sal, min(salary) min_sal, count(salary) count_sal
-from employee_demographics dem
-join employee_salary sal
-	on dem.employee_id = sal.employee_id
-group by gender
-) exmaple_subquery
+-- Subquries 
+SELECT AVG(avg_sal)
+FROM (
+SELECT gender, AVG(salary) avg_sal, MAX(salary) max_sal, MIN(salary) min_sal, COUNT(salary) count_sal
+FROM employee_demographics dem
+JOIN employee_salary sal
+	ON dem.employee_id = sal.employee_id
+GROUP BY gender
+) example_subquery
 ;
 
--- CTEs are just queries you are writing. Not pernament tables 
-with CTE_example as 
+-- can create multiple CTEs with a CTE
+WITH CTE_example AS 
 (
-select gender, avg(salary) avg_sal, max(salary) max_sal, min(salary) min_sal, count(salary) count_sal
-from employee_demographics dem
-join employee_salary sal
-	on dem.employee_id = sal.employee_id
-group by gender
+SELECT employee_id, gender, birth_date
+FROM employee_demographics 
+WHERE birth_date > '1985-01-01'
+),
+CTE_Example2 AS
+(
+SELECT employee_id, salary
+FROM employee_salary
+WHERE salary > 50000
 )
-select avg(avg_sal)
-from CTE_example
+SELECT *
+FROM CTE_example
+JOIN CTE_example2
+	ON CTE_example.employee_id = CTE_example2.employee_id
 ;
--- error cause SQL is trying to look for the table CTE_example which does not exist cause we never created one
-select avg(avg_sal)
-from CTE_example
-;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
