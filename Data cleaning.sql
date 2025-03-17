@@ -1,56 +1,60 @@
--- Data cleaning 
-Select *
-from layoffs;
+-- data cleaning
+
+SELECT *
+FROM layoffs;
 
 
 -- 1. Remove duplicates 
--- 2. Standardize the data 
--- 3. Fill in Null values or blank values 
--- 4. Remove unecessary columns or rows 
+-- 2. Standardize the data issues with spelling
+-- 3. NULL values or blank values 
+-- 4. Remove any columns and rows that are not necessary - few ways
 
--- 1 Remove duplicates 
-Create table layoffs_staging
-like layoffs;
 
-Select *
-from layoffs_staging;
+-- Create another table so that you dont change or mess up from OG table
+CREATE TABLE layoffs_staging
+LIKE layoffs;
 
-Insert layoffs_staging
-select*
-from layoffs;
+SELECT *
+FROM layoffs_staging;
 
-select*,
-row_number() over(
-partition by company, industry, total_laid_off, percentage_laid_off, `date`) as row_num
-from layoffs_staging;
+INSERT layoffs_staging
+SELECT *
+FROM layoffs;
 
-With duplicates_cte as
+
+-- Remove duplicates 
+SELECT *,
+ROW_NUMBER() OVER (PARTITION BY company, industry, total_laid_off, percentage_laid_off, `date`)AS row_num
+FROM layoffs_staging;
+
+WITH duplicate_cte AS
 (
-select*,
-row_number() over(
-partition by company, location, 
-industry, total_laid_off, percentage_laid_off, `date`, stage, country, funds_raised_millions) as row_num
-from layoffs_staging
+SELECT *,
+ROW_NUMBER() OVER (
+PARTITION BY company, location, industry, total_laid_off, percentage_laid_off, `date`, stage, 
+country, funds_raised_millions) AS row_num
+FROM layoffs_staging
 )
-select *
-from duplicates_cte
-where row_num > 1;
+SELECT *
+FROM duplicate_cte
+WHERE row_num > 1;
 
-Select *
-from layoffs_staging
-where company = 'Casper';
+SELECT *
+FROM layoffs_staging
+WHERE company = 'Casper';
 
-With duplicates_cte as
+
+WITH duplicate_cte AS
 (
-select*,
-row_number() over(
-partition by company, location, 
-industry, total_laid_off, percentage_laid_off, `date`, stage, country, funds_raised_millions) as row_num
-from layoffs_staging
+SELECT *,
+ROW_NUMBER() OVER (
+PARTITION BY company, location, industry, total_laid_off, percentage_laid_off, `date`, stage, 
+country, funds_raised_millions) AS row_num
+FROM layoffs_staging
 )
-delete 
-from duplicates_cte
-where row_num > 1;
+DELETE 
+FROM duplicate_cte
+WHERE row_num > 1;
 
 
 CREATE TABLE `layoffs_staging2` (
@@ -66,126 +70,116 @@ CREATE TABLE `layoffs_staging2` (
   `row_num` INT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-
-Select *
-from layoffs_staging2
-where row_num > 1;
-
-Insert into layoffs_staging2
-select*,
-row_number() over(
-partition by company, location, 
-industry, total_laid_off, percentage_laid_off, `date`, stage, country, funds_raised_millions) as row_num
-from layoffs_staging;
-
-Delete 
-from layoffs_staging2
-where row_num > 1;
-
-Select *
-from layoffs_staging2
-order by location ASC;
-
-
--- 2. Standardize the data 
-
-Select company, (Trim(company))
-from layoffs_staging2;
-
-update layoffs_staging2
-set company = (Trim(company)); -- take out white spaces
-
-Select distinct country
-from layoffs_staging2
-order by 1
-;
-
-Update layoffs_staging2
-set industry = 'Crypto'
-where industry like 'Crypto%';
-
-Select distinct country, Trim(trailing '.' from country)
-from layoffs_staging2
-order by 1
-;
-
-Update layoffs_staging2
-set country = Trim(trailing '.' from country)
-where country like 'United States%';
-
-Select `date`
-from layoffs_staging2;
-
-UPDATE layoffs_staging2
-set `date` = STR_TO_DATE(`date`,'%m/%d/%Y');
-
-ALTER TABLE layoffs_staging2
-MODIFY COLUMN `date` DATE;
-
 SELECT *
 FROM layoffs_staging2
-WHERE total_laid_off IS NULL
-AND percentage_laid_off IS NULL;
+WHERE row_num > 1;
 
-UPDATE layoffs_staging2
-SET industry = null
-WHERE INDUSTRY = '';
-
-
-SELECT *
-FROM layoffs_staging2
-WHERE industry IS NULL
-or industry = '';
-
-SELECT *
-FROM layoffs_staging2
-WHERE company like 'Bally%';
-
-
-SELECT t1.industry, t2.industry
-FROM layoffs_staging2 t1
-JOIN layoffs_staging2 t2
-	ON t1.company = t2.company 
-WHERE (t1.industry IS NULL OR t1.industry = '')
-and t2.industry IS NOT NULL;
-
-UPDATE layoffs_staging2 t1
-JOIN layoffs_staging2 t2
-	ON t1.company = t2.company 
-SET t1.industry = t2.industry
-WHERE (t1.industry IS NULL)
-and t2.industry IS NOT NULL;
-
-SELECT *
-FROM layoffs_staging2;
-
-
-SELECT *
-FROM layoffs_staging2
-WHERE total_laid_off IS NULL
-AND percentage_laid_off IS NULL;
+INSERT INTO layoffs_staging2
+SELECT *,
+ROW_NUMBER() OVER (
+PARTITION BY company, location, industry, total_laid_off, percentage_laid_off, `date`, stage, 
+country, funds_raised_millions) AS row_num
+FROM layoffs_staging;
 
 DELETE 
 FROM layoffs_staging2
-WHERE total_laid_off IS NULL
-AND percentage_laid_off IS NULL;
-
+WHERE row_num > 1;
 
 SELECT *
 FROM layoffs_staging2;
 
-ALTER TABLE layoffs_staging2
-DROP COLUMN row_num;
+-- standardizing data 
+SELECT company, TRIM(company)
+FROM layoffs_staging2;
+
+UPDATE layoffs_staging2
+SET company = TRIM(company);
+
+SELECT DISTINCT industry
+FROM layoffs_staging2
+order by 1;
+
+-- Update to Crypto
+UPDATE layoffs_staging2
+SET industry = 'Crypto'
+WHERE industry LIKE 'Crypto%';
+
+SELECT distinct country, trim(trailing '.' from country)
+FROM layoffs_staging2
+order by 1;
+
+update layoffs_staging2
+set country = trim(trailing '.' from country)
+where country LIKE 'United States%';
 
 
+-- change date to SQL date format
+SELECT `date`,
+str_to_date(`date`, '%m/%d/%Y')
+FROM layoffs_staging2;
+
+update layoffs_staging2
+set `date` = str_to_date(`date`, '%m/%d/%Y');
+
+-- chamge date from text to date
+alter table layoffs_staging2
+modify column `date` date; 
+
+select *
+from layoffs_staging2;
 
 
+-- remove NULL and blank values 
+select *
+from layoffs_staging2
+where total_laid_off is NULL
+and percentage_laid_off is NULL;
 
+select *
+from layoffs_staging2
+where industry is NULL 
+or industry = '';
 
+select *
+from layoffs_staging2
+where company LIKE 'Bally%s Interactive';
 
+-- fill the other empty colum 'industry' with travel
+select t1.industry, t2.industry
+from layoffs_staging2 t1
+	Join layoffs_staging2 t2
+    on t1.company = t2.company
+where (t1.industry IS NULL or t1.industry = '')
+and t2.industry is NOT NULL;
 
+update layoffs_staging2 t1
+Join layoffs_staging2 t2
+    on t1.company = t2.company
+set t1.industry = t2.industry
+where t1.industry IS NULL
+and t2.industry is NOT NULL;
 
+update layoffs_staging2
+set industry = NULL
+where industry = '';
 
+select *
+from layoffs_staging2;
 
+-- delete columns we dont need 
+delete
+from layoffs_staging2
+where total_laid_off is NULL
+and percentage_laid_off is NULL;
 
+select *
+from layoffs_staging2
+where total_laid_off is NULL
+and percentage_laid_off is NULL;
 
+select *
+from layoffs_staging2;
+
+-- drop row_num 
+alter table layoffs_staging2
+drop column row_num;
